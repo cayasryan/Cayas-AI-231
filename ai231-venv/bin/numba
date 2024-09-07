@@ -1,0 +1,8 @@
+#!/Users/cayasryan/Downloads/AI 222 231 Repos/Cayas-AI-231/ai231-venv/bin/python3.10
+# -*- coding: UTF-8 -*-
+from __future__ import print_function, division, absolute_import
+
+from numba.misc.numba_entry import main
+
+if __name__ == "__main__":
+    main()
