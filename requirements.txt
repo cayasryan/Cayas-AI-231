@@ -9,6 +9,7 @@ scikit-image
 librosa
 timm
 einops
+datasets
 
 gradio
 transformers
