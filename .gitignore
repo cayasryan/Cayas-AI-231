@@ -1,6 +1,12 @@
 # Files
 machine_exers/ME4/config.json
 
+# Ignore fine-tuned model results
+Cayas-AI-231/machine_exers/ME4/finetune_results/
+
+# Ignore Weights & Biases logs
+Cayas-AI-231/machine_exers/ME4/wandb/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
