@@ -1,10 +1,7 @@
-train: 
-  images: ../../../../../detection/grocery/dataset/images/train
-  labels: yolo_labels/train
-val: 
-  images: ../../../../../detection/grocery/dataset/images/val
-  labels: yolo_labels/val
-
+path: grocery # dataset root dir
+train: images/train # train images (relative to 'path')
+val: images/val # val images (relative to 'path')
+test: images/test
 nc: 22  # Number of classes
 names: [
   'bottled_soda',        # ID 1
@@ -16,8 +13,8 @@ names: [
   'corned_beef',         # ID 7
   'garlic',              # ID 8
   'instant_noodles',     # ID 9
-  'Mayonnaise',          # ID 13
   'lemon',               # ID 11
+  'Mayonnaise',          # ID 13
   'peanut_butter',       # ID 14
   'pasta',               # ID 15
   'pineapple_juice',     # ID 16
