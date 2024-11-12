@@ -1,0 +1,32 @@
+train: 
+  images: ../../../../../detection/grocery/dataset/images/train
+  labels: yolo_labels/train
+val: 
+  images: ../../../../../detection/grocery/dataset/images/val
+  labels: yolo_labels/val
+
+nc: 22  # Number of classes
+names: [
+  'bottled_soda',        # ID 1
+  'cheese',              # ID 2
+  'Kitkat',              # ID 3
+  'coffee',              # ID 4
+  'condensed_milk',      # ID 5
+  'Cooking_oil',         # ID 6
+  'corned_beef',         # ID 7
+  'garlic',              # ID 8
+  'instant_noodles',     # ID 9
+  'Mayonnaise',          # ID 13
+  'lemon',               # ID 11
+  'peanut_butter',       # ID 14
+  'pasta',               # ID 15
+  'pineapple_juice',     # ID 16
+  'crackers',            # ID 17
+  'canned_sardines',     # ID 18
+  'pink_shampoo',        # ID 19
+  'soap',                # ID 20
+  'silverswan',          # ID 21
+  'toothpaste',          # ID 22
+  'canned_tuna',         # ID 23
+  'GreenCross_Ethyl_Alcohol'  # ID 24
+]
