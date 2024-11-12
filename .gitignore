@@ -1,6 +1,6 @@
 # Files and Folders
 machine_exers/ME4/config.json
-machine_exers/ME5/dataset/
+machine_exers/ME5/datasets/
 machine_exers/ME5/runs/
 machine_exers/ME5/yolo11n.pt
 
