@@ -1,16 +1,24 @@
-from ultralytics import YOLO
+import gradio as gr
 import cv2
-import math 
-# start webcam
-cap = cv2.VideoCapture(0)
-cap.set(3, 640)
-cap.set(4, 480)
+import numpy as np
+from ultralytics import YOLO
+import time
+import os
 
-# model
-model = YOLO("YOLO-segment-v3/train1/weights/best.pt")
+# Load the YOLO models
+detect_model_path = "best_models/YOLO-detect-v3.pt"
+segment_model_path = "best_models/YOLO-segment-v3.pt"
 
-# object classes
-classNames = [
+# Set-up CUDA device
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" 
+# use a specific GPU
+os.environ["CUDA_VISIBLE_DEVICES"]="4"
+
+# Load the YOLO models using ultralytics
+detect_model = YOLO(detect_model_path, task = 'detect')
+segment_model = YOLO(segment_model_path, task = 'segment')
+
+class_names = [
   'bottled_soda',        # ID 1
   'cheese',              # ID 2
   'chocolate',           # ID 3
@@ -37,43 +45,122 @@ classNames = [
   'isopropyl_alcohol'    # ID 24
 ]
 
+# Define the function to process the webcam input for detection
+def detection(image, conf_threshold=0.3):
+    if image is None or image.size == 0:
+        return image, 0.0
 
-while True:
-    success, img = cap.read()
-    results = model(img, stream=True)
-
-    # coordinates
-    for r in results:
-        boxes = r.boxes
-
+    start_time = time.time()
+    
+    # Convert the image to RGB format
+    frame_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
+    # Run inference
+    results = detect_model(frame_rgb, conf=conf_threshold)
+    
+    # Make the image writable
+    image = image.copy()
+    
+    # Postprocess the outputs
+    for result in results:
+        boxes = result.boxes
         for box in boxes:
-            # bounding box
-            x1, y1, x2, y2 = box.xyxy[0]
-            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2) # convert to int values
-
-            # put box in cam
-            cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
-
-            # confidence
-            confidence = math.ceil((box.conf[0]*100))/100
-            print("Confidence --->",confidence)
-
-            # class name
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            conf = box.conf[0]
             cls = int(box.cls[0])
-            print("Class name -->", classNames[cls])
+            if conf > conf_threshold:
+                cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                label = f"{class_names[cls]}: {conf:.2f}"
+                cv2.putText(image, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 3)
 
-            # object details
-            org = [x1, y1]
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            fontScale = 1
-            color = (255, 0, 0)
-            thickness = 2
+    # Calculate FPS
+    end_time = time.time()
+    fps = 1 / (end_time - start_time)
+    cv2.putText(image, f"FPS: {fps:.2f}", (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3)
 
-            cv2.putText(img, classNames[cls], org, font, fontScale, color, thickness)
+    return image, fps
 
-    cv2.imshow('Webcam', img)
-    if cv2.waitKey(1) == ord('q'):
-        break
+# Define the function to process the webcam input for segmentation
+def segmentation(image, conf_threshold=0.3):
+    if image is None or image.size == 0:
+        return image, 0.0
 
-cap.release()
-cv2.destroyAllWindows()
+    start_time = time.time()
+    
+    # Convert the image to RGB format
+    frame_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
+    # Run inference
+    results = segment_model(frame_rgb, conf=conf_threshold)
+    
+    # Make the image writable
+    image = image.copy()
+    
+    # Postprocess the outputs
+    for result in results:
+        boxes = result.boxes
+        for box in boxes:
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            conf = box.conf[0]
+            cls = int(box.cls[0])
+            if conf > conf_threshold:
+                cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                label = f"{class_names[cls]}: {conf:.2f}"
+                cv2.putText(image, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 3)
+
+        masks = result.masks
+        if masks is not None:
+            for mask in masks.data:
+                mask = mask.cpu().numpy()
+                mask = (mask > 0.5).astype(np.uint8)  # Binarize the mask
+                mask = cv2.resize(mask, (image.shape[1], image.shape[0]))
+                color = (0, 0, 255)  # blue color for the mask
+                contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                cv2.drawContours(image, contours, -1, color, thickness=cv2.FILLED)
+
+    end_time = time.time()
+    fps = 1 / (end_time - start_time)
+    cv2.putText(image, f"FPS: {fps:.2f}", (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3)
+
+    return image, fps
+
+# Define the function to process the image based on the selected mode
+def process_image(image, conf_threshold, mode):
+    if mode == "Detection":
+        return detection(image, conf_threshold)
+    else:
+        return segmentation(image, conf_threshold)
+
+css = """.my-group {max-width: 800px !important; max-height: 800px !important;}
+         .my-column {display: flex !important; justify-content: center !important; align-items: center !important;}"""
+
+with gr.Blocks(css=css) as demo:
+    gr.HTML(
+        """
+        <h1 style='text-align: center'>
+        Real-time Detection and Segmentation of Common Grocery Items
+        </h1>
+        """
+    )
+    with gr.Row():
+        with gr.Column(scale=1):
+            conf_threshold = gr.Slider(
+                label="Confidence Threshold",
+                minimum=0.0,
+                maximum=1.0,
+                step=0.05,
+                value=0.30,
+            )
+            mode = gr.Radio(
+                choices=["Detection", "Segmentation"],
+                value="Detection",
+                label="Mode"
+            )
+            fps_display = gr.Textbox(label="FPS", interactive=False)
+        with gr.Column(scale=3):
+            input_img = gr.Image(sources=["webcam"], type="numpy", streaming=True)
+
+    input_img.stream(process_image, [input_img, conf_threshold, mode], [input_img, fps_display], stream_every=0.1)
+
+if __name__ == "__main__":
+    demo.launch()
